@@ -5,6 +5,7 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection;
 using Mvc.JQuery.Datatables.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace Mvc.JQuery.Datatables.Reflection
 {
@@ -41,11 +42,11 @@ namespace Mvc.JQuery.Datatables.Reflection
             var dictionary = new Dictionary<string, object>();
             foreach (var pi in Properties)
             {
-                dictionary[pi.PropertyInfo.Name] = pi.PropertyInfo.GetValue(row, null);
+                dictionary[pi.PropertyInfo.Name] = getValue(row, pi);
             }
             if (RowID != null)
             {
-                dictionary["DT_RowID"] = RowID.PropertyInfo.GetValue(row, null);
+                dictionary["DT_RowID"] = getValue(row, RowID);
                 if (!RowID.Attributes.OfType<DataTablesRowIdAttribute>().First().EmitAsColumnName)
                 {
                     dictionary.Remove(RowID.PropertyInfo.Name);
@@ -68,7 +69,7 @@ namespace Mvc.JQuery.Datatables.Reflection
                     dictionary["DT_RowID"] = options.DT_RowID(row);
                     foreach (var pi in Properties)
                     {
-                        dictionary[pi.PropertyInfo.Name] = pi.PropertyInfo.GetValue(row, null);
+                        dictionary[pi.PropertyInfo.Name] = getValue(row, pi);
                     }
                     return dictionary;
                 };
@@ -80,11 +81,23 @@ namespace Mvc.JQuery.Datatables.Reflection
             var dictionary = new OrderedDictionary();
             foreach (var pi in Properties)
             {
-                dictionary[pi.PropertyInfo.Name] = pi.PropertyInfo.GetValue(row, null);
+                dictionary[pi.PropertyInfo.Name] = getValue(row, pi);
             }
             return dictionary;
         }
 
-
+        private static object getValue(T row, DataTablesPropertyInfo pi)
+        {
+            object value = pi.PropertyInfo.GetValue(row, null);
+            if (value != null)
+            {
+                var displayFormat = pi.PropertyInfo.GetCustomAttribute<DisplayFormatAttribute>();
+                if (displayFormat != null)
+                {
+                    value = string.Format(displayFormat.DataFormatString, value);
+                }
+            }
+            return value;
+        }
     }
 }
