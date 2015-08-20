@@ -92,7 +92,7 @@ namespace Mvc.JQuery.Datatables
             Guard(IsDateTimeOffsetType, TypeFilters.DateTimeOffsetFilter),
             Guard(IsNumericType, TypeFilters.NumericFilter),
             Guard(IsEnumType, TypeFilters.EnumFilter),
-            Guard(arg => arg.Type == typeof (string), TypeFilters.StringFilter),
+            Guard(IsStringType, TypeFilters.StringFilter),
         };
 
 
@@ -118,15 +118,23 @@ namespace Mvc.JQuery.Datatables
 
         private static string GetFilterClause(string query, DataTablesPropertyInfo column, List<object> parametersForLinqQuery)
         {
+            var isCollection = column.Type.IsGenericType && column.Type.GetGenericTypeDefinition() == typeof(IEnumerable<>);
             Func<string, string> filterClause = (queryPart) =>
                                                 Filters.Select(
-                                                    f => f(queryPart, column.PropertyInfo.Name, column, parametersForLinqQuery))
-                                                       .FirstOrDefault(filterPart => filterPart != null) ?? "";
+                                                    f => f(queryPart, isCollection ? "it" : column.PropertyInfo.Name, column, parametersForLinqQuery))
+                                                        .FirstOrDefault(filterPart => filterPart != null) ?? "";
 
             var queryParts = query.Split('|').Select(filterClause).Where(fc => fc != "").ToArray();
             if (queryParts.Any())
             {
-                return "(" + string.Join(") OR (", queryParts) + ")";
+                if (isCollection)
+                {
+                    return String.Format("{0}.Any(({1}))", column.PropertyInfo.Name, string.Join(") OR (", queryParts));
+                }
+                else
+                {
+                    return "(" + string.Join(") OR (", queryParts) + ")";
+                }
             }
             return null;
         }
@@ -134,8 +142,8 @@ namespace Mvc.JQuery.Datatables
 
         public static bool IsNumericType(DataTablesPropertyInfo propertyInfo)
         {
-            var type = propertyInfo.Type;
-            return IsNumericType(type);
+            return IsNumericType(propertyInfo.Type) ||
+                (propertyInfo.Type.IsGenericType && propertyInfo.Type.GetGenericTypeDefinition() == typeof(IEnumerable<>) && IsNumericType(propertyInfo.Type.GetGenericArguments()[0]));
         }
 
         private static bool IsNumericType(Type type)
@@ -171,20 +179,28 @@ namespace Mvc.JQuery.Datatables
 
         public static bool IsEnumType(DataTablesPropertyInfo propertyInfo)
         {
-            return propertyInfo.Type.IsEnum;
+            return propertyInfo.Type.IsEnum || (propertyInfo.Type.IsGenericType && propertyInfo.Type.GetGenericTypeDefinition() == typeof(IEnumerable<>) && propertyInfo.Type.GetGenericArguments()[0].IsEnum);
         }
 
         public static bool IsBoolType(DataTablesPropertyInfo propertyInfo)
         {
-            return propertyInfo.Type == typeof(bool) || propertyInfo.Type == typeof(bool?);
+            return propertyInfo.Type == typeof(bool) || propertyInfo.Type == typeof(bool?) ||
+                propertyInfo.Type == typeof(IEnumerable<bool>) || propertyInfo.Type == typeof(IEnumerable<bool?>);
         }
         public static bool IsDateTimeType(DataTablesPropertyInfo propertyInfo)
         {
-            return propertyInfo.Type == typeof(DateTime) || propertyInfo.Type == typeof(DateTime?);
+            return propertyInfo.Type == typeof(DateTime) || propertyInfo.Type == typeof(DateTime?) ||
+                propertyInfo.Type == typeof(IEnumerable<DateTime>) || propertyInfo.Type == typeof(IEnumerable<DateTime?>);
         }
         public static bool IsDateTimeOffsetType(DataTablesPropertyInfo propertyInfo)
         {
-            return propertyInfo.Type == typeof(DateTimeOffset) || propertyInfo.Type == typeof(DateTimeOffset?);
+            return propertyInfo.Type == typeof(DateTimeOffset) || propertyInfo.Type == typeof(DateTimeOffset?) ||
+                propertyInfo.Type == typeof(IEnumerable<DateTimeOffset>) || propertyInfo.Type == typeof(IEnumerable<DateTimeOffset?>);
+        }
+
+        public static bool IsStringType(DataTablesPropertyInfo propertyInfo)
+        {
+            return propertyInfo.Type == typeof(string) || propertyInfo.Type == typeof(IEnumerable<string>);
         }
 
     }

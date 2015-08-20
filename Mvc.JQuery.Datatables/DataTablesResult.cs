@@ -24,8 +24,12 @@ namespace Mvc.JQuery.Datatables
             return Create(q, dataTableParam, transform, new ResponseOptions<TSource>() { ArrayOutputType = arrayOutput });
         }
 
+        public static DataTablesResult<TSource> Create<TSource>(IQueryable<TSource> q, DataTablesParam dataTableParam)
+        {
+            return Create(q, dataTableParam, new ResponseOptions<TSource>());
+        }
         public static DataTablesResult<TSource> Create<TSource>(IQueryable<TSource> q, DataTablesParam dataTableParam,
-            ArrayOutputType? arrayOutput = null)
+            ArrayOutputType? arrayOutput)
         {
             return Create(q, dataTableParam, new ResponseOptions<TSource>() { ArrayOutputType = arrayOutput });
         }
@@ -37,7 +41,7 @@ namespace Mvc.JQuery.Datatables
         /// <param name="transform">//a transform for custom column rendering e.g. to do a custom date row => new { CreatedDate = row.CreatedDate.ToString("dd MM yy") } </param>
         /// <returns></returns>
         public static DataTablesResult<TSource> Create<TSource, TTransform>(IQueryable<TSource> q, DataTablesParam dataTableParam,
-            Func<TSource, TTransform> transform, ResponseOptions<TSource> responseOptions = null)
+            Func<TSource, TTransform> transform, ResponseOptions<TSource> responseOptions)
         {
             var result = new DataTablesResult<TSource>(q, dataTableParam);
 

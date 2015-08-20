@@ -128,6 +128,13 @@ namespace Mvc.JQuery.Datatables
             }
         }
 
+        internal static string StringListFilter(string query, string columnName, DataTablesPropertyInfo columnType, List<object> parametersForLinqQuery)
+        {
+            var filterString = $"@{parametersForLinqQuery.Count}";
+            parametersForLinqQuery.Add(query);
+            return filterString;
+        }
+
         public static string DateTimeFilter(string query, string columnname, DataTablesPropertyInfo propertyInfo, List<object> parametersForLinqQuery)
         {
             if (query == "~") return string.Empty;
